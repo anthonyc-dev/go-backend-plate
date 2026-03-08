@@ -1,0 +1,10 @@
+.env
+.env.local
+*.log
+*.tmp
+*.bak
+app.exe
+.DS_Store
+.vscode
+.idea
+*.md
