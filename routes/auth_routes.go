@@ -16,6 +16,9 @@ func AuthRoutes(r *gin.Engine) {
 	{
 		auth.POST("/register", controllers.Register)
 		auth.POST("/login", controllers.Login)
+		auth.POST("/forgot-password", controllers.ForgotPassword)
+		auth.POST("/verify-otp", controllers.VerifyOTP)
+		auth.POST("/reset-password", controllers.ResetPassword)
 	}
 
 	api.POST("/refresh", controllers.RefreshToken)

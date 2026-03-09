@@ -17,22 +17,22 @@ var (
 
 type LoginAttemptLimiter struct {
 	redis        *redis.Client
-	maxAttempts int
+	maxAttempts  int
 	blockMinutes int
 }
 
 func NewLoginAttemptLimiter() *LoginAttemptLimiter {
 	maxAttempts := 5
 	blockMinutes := 5
-	
+
 	if configs.AppEnv != nil {
 		maxAttempts = configs.AppEnv.MaxLoginAttempts
 		blockMinutes = configs.AppEnv.LoginBlockMinutes
 	}
-	
+
 	return &LoginAttemptLimiter{
 		redis:        configs.RedisClient,
-		maxAttempts: maxAttempts,
+		maxAttempts:  maxAttempts,
 		blockMinutes: blockMinutes,
 	}
 }
