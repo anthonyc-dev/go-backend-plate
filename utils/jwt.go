@@ -13,7 +13,6 @@ import (
 	"github.com/google/uuid"
 )
 
-
 func GenerateAccessToken(userID uint) (string, string, error) {
 	tokenID := uuid.New().String()
 

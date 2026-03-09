@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"rest-api/database"
@@ -23,9 +24,54 @@ type TokenPair struct {
 var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrEmailExists        = errors.New("email already registered")
-	ErrInvalidToken      = errors.New("invalid refresh token")
-	ErrTokenExpired      = errors.New("refresh token expired")
+	ErrInvalidToken       = errors.New("invalid refresh token")
+	ErrTokenExpired       = errors.New("refresh token expired")
+	ErrOTPExpired         = errors.New("OTP has expired")
+	ErrInvalidOTP         = errors.New("invalid OTP")
+	ErrOTPAlreadyUsed     = errors.New("OTP already used")
+	ErrTooManyAttempts    = errors.New("too many OTP attempts")
+	ErrUserNotFound       = errors.New("user not found")
 )
+
+type OTPRateLimiter struct {
+	attempts map[string]int
+	lock     sync.RWMutex
+	limit    int
+	window   time.Duration
+}
+
+func NewOTPRateLimiter(limit int, window time.Duration) *OTPRateLimiter {
+	return &OTPRateLimiter{
+		attempts: make(map[string]int),
+		limit:    limit,
+		window:   window,
+	}
+}
+
+func (r *OTPRateLimiter) Check(email string) error {
+	r.lock.RLock()
+	attempts := r.attempts[email]
+	r.lock.RUnlock()
+
+	if attempts >= r.limit {
+		return ErrTooManyAttempts
+	}
+	return nil
+}
+
+func (r *OTPRateLimiter) Record(email string) {
+	r.lock.Lock()
+	r.attempts[email]++
+	r.lock.Unlock()
+
+	time.AfterFunc(r.window, func() {
+		r.lock.Lock()
+		delete(r.attempts, email)
+		r.lock.Unlock()
+	})
+}
+
+var otpLimiter = NewOTPRateLimiter(3, 5*time.Minute)
 
 func Register(name, email, password string) (*models.User, error) {
 
@@ -184,4 +230,120 @@ func GetUserByID(userID uint) (*models.User, error) {
 	}
 
 	return &user, nil
+}
+
+func RequestForgotPassword(email string) error {
+	var user models.User
+	if err := database.DB.Where("email = ?", email).First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil
+		}
+		return err
+	}
+
+	if err := otpLimiter.Check(email); err != nil {
+		utils.LogErrorPlain("OTP rate limit exceeded for email: " + email)
+		return err
+	}
+
+	existingOTP := models.PasswordResetOTP{}
+	database.DB.Where("email = ? AND is_used = ? AND expires_at > ?", email, false, time.Now()).
+		First(&existingOTP)
+	if existingOTP.ID != 0 {
+		utils.LogErrorPlain("Active OTP already exists for email: " + email)
+		return errors.New("OTP already sent, please wait 5 minutes")
+	}
+
+	otp, err := GenerateSecureOTP(6)
+	if err != nil {
+		return err
+	}
+
+	hashedOTP := HashOTP(otp)
+	expiresAt := GetOTPExpiry()
+
+	otpRecord := models.PasswordResetOTP{
+		Email:     email,
+		OTP:       hashedOTP,
+		ExpiresAt: expiresAt,
+		Attempts:  0,
+		IsUsed:    false,
+	}
+
+	if err := database.DB.Create(&otpRecord).Error; err != nil {
+		return err
+	}
+
+	emailService := NewEmailService()
+	if err := emailService.SendOTP(email, otp); err != nil {
+		utils.LogErrorPlain("Failed to send OTP email: " + err.Error())
+		return errors.New("failed to send OTP email")
+	}
+
+	otpLimiter.Record(email)
+
+	utils.LogInfo("OTP sent successfully to email: " + email)
+	return nil
+}
+
+func VerifyOTP(email, otp string) error {
+	var otpRecord models.PasswordResetOTP
+	if err := database.DB.Where("email = ? AND is_used = ?", email, false).
+		Order("created_at DESC").First(&otpRecord).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			utils.LogErrorPlain("No active OTP found for email: " + email)
+			return ErrInvalidOTP
+		}
+		return err
+	}
+
+	if time.Now().After(otpRecord.ExpiresAt) {
+		utils.LogErrorPlain("OTP expired for email: " + email)
+		return ErrOTPExpired
+	}
+
+	hashedOTP := HashOTP(otp)
+	if hashedOTP != otpRecord.OTP {
+		otpRecord.Attempts++
+		database.DB.Save(&otpRecord)
+
+		if otpRecord.Attempts >= 3 {
+			database.DB.Delete(&otpRecord)
+			utils.LogErrorPlain("Too many OTP attempts for email: " + email)
+			return ErrTooManyAttempts
+		}
+
+		utils.LogErrorPlain("Invalid OTP attempt for email: " + email)
+		return ErrInvalidOTP
+	}
+
+	otpRecord.IsUsed = true
+	database.DB.Save(&otpRecord)
+
+	return nil
+}
+
+func ResetPassword(email, newPassword string) error {
+	var user models.User
+	if err := database.DB.Where("email = ?", email).First(&user).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return ErrUserNotFound
+		}
+		return err
+	}
+
+	hashedPassword, err := utils.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+
+	user.Password = hashedPassword
+	if err := database.DB.Save(&user).Error; err != nil {
+		return err
+	}
+
+	database.DB.Where("email = ?", email).Delete(&models.PasswordResetOTP{})
+
+	utils.LogInfo("Password reset successfully for email: " + email)
+	return nil
 }

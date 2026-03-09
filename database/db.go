@@ -34,7 +34,7 @@ func ConnectDB() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	db.AutoMigrate(&models.User{}, &models.RefreshToken{}, &models.TokenBlacklist{})
+	db.AutoMigrate(&models.User{}, &models.RefreshToken{}, &models.TokenBlacklist{}, &models.PasswordResetOTP{})
 
 	DB = db
 }

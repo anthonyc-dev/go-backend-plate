@@ -8,19 +8,21 @@ import (
 )
 
 type Env struct {
-	Port           string
-	DBConnection   string
-	DBHost         string
-	DBUser         string
-	DBPassword     string
-	DBName         string
-	DBPort         string
-	DatabaseURL    string
-	JWTSecret      string
-	RedisHost      string
-	RedisPort      string
-	MaxLoginAttempts int
+	Port              string
+	DBConnection      string
+	DBHost            string
+	DBUser            string
+	DBPassword        string
+	DBName            string
+	DBPort            string
+	DatabaseURL       string
+	JWTSecret         string
+	RedisHost         string
+	RedisPort         string
+	MaxLoginAttempts  int
 	LoginBlockMinutes int
+	SMTPEmail         string
+	SMTPPassword      string
 }
 
 var AppEnv *Env
@@ -47,18 +49,20 @@ func LoadEnv() {
 	}
 
 	AppEnv = &Env{
-		Port:             os.Getenv("PORT"),
-		DBConnection:     os.Getenv("DB_CONNECTION"),
-		DBHost:           os.Getenv("DB_HOST"),
-		DBUser:           os.Getenv("DB_USER"),
-		DBPassword:       os.Getenv("DB_PASSWORD"),
-		DBName:           os.Getenv("DB_NAME"),
-		DBPort:           os.Getenv("DB_PORT"),
-		DatabaseURL:      os.Getenv("DATABASE_URL"),
-		JWTSecret:        os.Getenv("JWT_SECRET"),
-		RedisHost:        os.Getenv("REDIS_HOST"),
-		RedisPort:        os.Getenv("REDIS_PORT"),
-		MaxLoginAttempts: maxAttempts,
+		Port:              os.Getenv("PORT"),
+		DBConnection:      os.Getenv("DB_CONNECTION"),
+		DBHost:            os.Getenv("DB_HOST"),
+		DBUser:            os.Getenv("DB_USER"),
+		DBPassword:        os.Getenv("DB_PASSWORD"),
+		DBName:            os.Getenv("DB_NAME"),
+		DBPort:            os.Getenv("DB_PORT"),
+		DatabaseURL:       os.Getenv("DATABASE_URL"),
+		JWTSecret:         os.Getenv("JWT_SECRET"),
+		RedisHost:         os.Getenv("REDIS_HOST"),
+		RedisPort:         os.Getenv("REDIS_PORT"),
+		MaxLoginAttempts:  maxAttempts,
 		LoginBlockMinutes: blockMinutes,
+		SMTPEmail:         os.Getenv("SMTP_EMAIL"),
+		SMTPPassword:      os.Getenv("SMTP_PASSWORD"),
 	}
 }
