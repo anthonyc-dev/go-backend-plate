@@ -10,6 +10,7 @@ import (
 
 func AuthRoutes(r *gin.Engine) {
 	api := r.Group("/api")
+	api.Use(middleware.AuditMiddleware())
 
 	auth := api.Group("")
 	auth.Use(middleware.RateLimiterMiddleware(5, time.Minute))
