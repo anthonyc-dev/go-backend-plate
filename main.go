@@ -45,7 +45,7 @@ func main() {
 	}))
 
 	r.GET("/api", func(c *gin.Context) {
-		c.JSON(200, gin.H{"message": "CORS workings"})
+		c.JSON(200, gin.H{"message": "CORS working"})
 	})
 
 	r.GET("/health", func(c *gin.Context) {
