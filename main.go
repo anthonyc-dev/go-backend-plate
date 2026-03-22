@@ -34,16 +34,15 @@ func main() {
 
 	r := gin.Default()
 
-
-// 	"github.com/gin-contrib/cors"
-// 	r.Use(cors.New(cors.Config{
-//     AllowOrigins:     []string{"*"},
-//     AllowMethods:     []string{"*"},
-//     AllowHeaders:     []string{"*"},
-//     ExposeHeaders:    []string{"*"},
-//     AllowCredentials: false,
-//     MaxAge:           12 * time.Hour,
-// }))
+	// 	"github.com/gin-contrib/cors"
+	// 	r.Use(cors.New(cors.Config{
+	//     AllowOrigins:     []string{"*"},
+	//     AllowMethods:     []string{"*"},
+	//     AllowHeaders:     []string{"*"},
+	//     ExposeHeaders:    []string{"*"},
+	//     AllowCredentials: false,
+	//     MaxAge:           12 * time.Hour,
+	// }))
 
 	// r.Use(cors.New(cors.Config{
 	// 	AllowOrigins:     []string{"http://localhost:5173"},

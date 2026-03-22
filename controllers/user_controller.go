@@ -14,6 +14,8 @@ var DB *gorm.DB
 func InitDB(db *gorm.DB) {
 	DB = db
 	DB.AutoMigrate(&models.User{})
+	DB.AutoMigrate(&models.Notification{})
+	DB.AutoMigrate(&models.PushToken{})
 }
 
 func GetUsers(c *gin.Context) {
