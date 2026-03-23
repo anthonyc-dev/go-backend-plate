@@ -67,6 +67,7 @@ func main() {
 
 	routes.AuthRoutes(r)
 	routes.UserRoutes(r)
+	routes.NotificationRoutes(r)
 
 	port := configs.AppEnv.Port
 	if port == "" {

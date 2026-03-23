@@ -62,7 +62,7 @@ func NotifyUser(c *gin.Context) {
 		UserID uint                   `json:"user_id" validate:"required"`
 		Title  string                 `json:"title" validate:"required"`
 		Body   string                 `json:"body" validate:"required"`
-		Type   string                 `json:"type" validate:"omitempty,oneof=system user chat"`
+		Type   string                 `json:"type"`
 		Data   map[string]interface{} `json:"data"`
 	}
 
@@ -100,15 +100,17 @@ func NotifyUser(c *gin.Context) {
 	}
 
 	if err := database.DB.Create(&notif).Error; err != nil {
+		utils.LogErrorPlain("Create notification failed: " + err.Error())
 		utils.LogError(c, http.StatusInternalServerError, "CREATE_FAILED", "Failed to create notification")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create notification"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create notification", "details": err.Error()})
 		return
 	}
 
 	var tokens []models.PushToken
 	if err := database.DB.Where("user_id = ?", body.UserID).Find(&tokens).Error; err != nil {
+		utils.LogErrorPlain("Fetch push tokens failed: " + err.Error())
 		utils.LogError(c, http.StatusInternalServerError, "FETCH_TOKENS_FAILED", "Failed to fetch push tokens")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch push tokens"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch push tokens", "details": err.Error()})
 		return
 	}
 
